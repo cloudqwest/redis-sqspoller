@@ -1,3 +1,3 @@
 module Sqspoller
-  VERSION = "0.1.2.5.1.alpha"
+  VERSION = "0.1.2.5.2.alpha"
 end

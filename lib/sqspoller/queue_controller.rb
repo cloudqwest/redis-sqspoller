@@ -80,6 +80,7 @@ module Sqspoller
         #     end
         #   end
         # end
+        @logger.info "Exiting thread, should never get here"
       end
     end
 
