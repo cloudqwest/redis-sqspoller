@@ -54,13 +54,15 @@ module Sqspoller
 
         loop do
           poller.poll do |received_message|
+            @logger.info "    Received message from #{@queue_name} : #{received_message.message_id}"
             begin
               @task_delegator.process self, received_message, queue_name
             rescue Exception => e
-              @logger.info "  Encountered error #{e.message} while submitting message to worker from queue #{queue_name}"
+              @logger.info "      Encountered error #{e.message} while submitting message to worker from queue #{queue_name}"
               throw :skip_delete
             end
           end
+          @logger.info "    Completed processing received_message: #{received_message}"
         end
         # loop do
         #   block_on_maintenance_window
@@ -80,8 +82,12 @@ module Sqspoller
         #     end
         #   end
         # end
-        @logger.info "Exiting thread, should never get here"
+        @logger.info "Exiting thread for queue_url #{queue_url}, should never get here"
       end
+    rescue ThreadError => e
+      @logger.info "  Encountered Thread error #{e.message} while starting thread for queue_url #{queue_url}"
+    rescue => e
+      @logger.info "  Encountered error #{e.message} while starting thread for queue_url #{queue_url}"
     end
 
     def delete_message(receipt_handle)
@@ -92,11 +98,13 @@ module Sqspoller
     def block_on_maintenance_window
       if @maintenance_window
         loop do
+          @logger.info "    Checking if maintenance window is open"
           window_open = REDIS.get @cache_key
           if window_open
-            @logger.info "    Maintenance Window is open for #{@window_identifier}, sleeping for 5 minutes"
+            @logger.info "      Maintenance Window is open for #{@window_identifier}, sleeping for 5 minutes"
             sleep 300
           else
+            @logger.info "      No maintenance window is open, continuing"
             break
           end
         end
