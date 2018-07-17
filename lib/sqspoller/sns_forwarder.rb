@@ -8,7 +8,7 @@ module Sqspoller
                                   region: args[:region]
       @topic_arn = args[:sns_topic_arn]
       @logger = args[:logger]
-      @logger.info "     Inializing SnsForwarder with SNS topic arn: #{@topic_arn}"
+      @logger.info "     Initializing SnsForwarder with SNS topic arn: #{@topic_arn}"
     end
 
     def process message, message_id

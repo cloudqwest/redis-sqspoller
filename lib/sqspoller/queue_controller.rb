@@ -44,6 +44,7 @@ module Sqspoller
       Thread.new do
         poller = Aws::SQS::QueuePoller.new(queue_url)
         poller.before_request do |stats|
+           @logger.info "  Blocking the poller on maintenance window, queue_url : #{queue_url}"
           block_on_maintenance_window
         end
 
@@ -51,14 +52,21 @@ module Sqspoller
           @logger.info "  Polling queue #{queue_name} for messages"
           poller.poll do |received_message|
             begin
+              @logger.info "   Received message from #{@queue_name} : #{received_message.message_id}"
               @task_delegator.process self, received_message, queue_name
             rescue Exception => e
-              @logger.info "  Encountered error #{e.message} while submitting message to worker from queue #{queue_name}"
+              @logger.info "   Encountered error #{e.message} while submitting message to worker from queue #{queue_name}"
               throw :skip_delete
             end
           end
+           @logger.info "  looping over Poller.poll, processed received_message: #{received_message}"
         end
+        @logger.info "  Stopping thread execution, queue_url : #{queue_url}"
       end
+    rescue ThreadError => e
+       @logger.info "  Encountered Thread error #{e.message} while starting thread for queue_url #{queue_url}"
+    rescue => e
+       @logger.info "  Encountered error #{e.message} while starting thread for queue_url #{queue_url}"
     end
 
     def delete_message(receipt_handle)
@@ -67,11 +75,13 @@ module Sqspoller
     end
 
     def block_on_maintenance_window
+      @logger.info "  checking for maintenance_window, #{@maintenance_window}"
       if @maintenance_window
         loop do
           window_open = REDIS.get @cache_key
+          @logger.info "  checking for window_open, #{window_open}"
           if window_open
-            @logger.info "    Maintenance Window is open for #{@window_identifier}, sleeping for 5 minutes"
+            @logger.info "   Maintenance Window is open for #{@window_identifier}, sleeping for 5 minutes"
             sleep 300
           else
             break
