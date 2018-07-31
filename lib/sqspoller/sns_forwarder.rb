@@ -14,8 +14,12 @@ module Sqspoller
     def process message, message_id
       @logger.info "      Processing message"
       @logger.info "        Publishing to #{@topic_arn}"
-      response = @sns.publish topic_arn: @topic_arn, message: message
-      @logger.info "        SNS response message id: #{response.message_id}"
+      begin
+        response = @sns.publish topic_arn: @topic_arn, message: message
+        @logger.info "        SNS response message id: #{response.message_id}"
+      rescue Aws::SNS::Errors::ServiceError => e
+        @logger.info "AWS SNS Encountered the error: #{e.inspect}"
+      end
     end
   end
 end

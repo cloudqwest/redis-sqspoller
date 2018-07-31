@@ -150,6 +150,7 @@ module Sqspoller
           @logger.info "  Refreshing config"
           config = load_config_from_redis poller_args[:content_name]
           queues_config = config[poller_args[:queue_config_name]]
+          refresh_interval = config[:worker_configuration][:refresh_interval_in_seconds]
         end
       end
 
