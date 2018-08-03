@@ -5,7 +5,7 @@ require 'sqspoller/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "fk-redis-sqspoller"
-  spec.version       = '0.1.2.1'
+  spec.version       = Sqspoller::VERSION
   spec.authors       = ["FourKites"]
   spec.email         = ["developer@fourkites.com"]
 

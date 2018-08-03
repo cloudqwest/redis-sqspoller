@@ -101,6 +101,7 @@ module Sqspoller
       def start_queues_with_config poller_args
         @logger = Logger.new(poller_args[:log_filename])
         poller_args[:logger] = @logger
+        @logger.info "Starting version: #{VERSION}"
         @logger.info "Get config"
         config = if poller_args[:redis_or_file]
                    load_config_from_redis poller_args[:content_name]
@@ -130,12 +131,16 @@ module Sqspoller
         @logger.info "Start all queues with refresh"
         queues = {}
         loop do
-          Thread.pass
           queue_names = queues_config.keys
           queues_config.keys.each do |queue|
             @logger.info "    Checking queue #{queue}"
             if queues[queue]
-              @logger.info "      Queue: #{queue} not created, already initialized and running"
+              if queues[queue].all_threads_alive?
+                @logger.info "      Queue: #{queue} not created, already initialized and running"
+              else
+                @logger.info "      Queue: #{queue} previously created, however not all threads are running. Restarting."
+                queues[queue] = start_queue_controller queues_config, queue, message_delegator, poller_args
+              end
             else
               queues[queue] = start_queue_controller queues_config, queue, message_delegator, poller_args
             end
@@ -145,6 +150,7 @@ module Sqspoller
           @logger.info "  Refreshing config"
           config = load_config_from_redis poller_args[:content_name]
           queues_config = config[poller_args[:queue_config_name]]
+          refresh_interval = config[:worker_configuration][:refresh_interval_in_seconds]
         end
       end
 
